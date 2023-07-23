@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors } from "../Constants/Colors";
 import { TextInput } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -42,7 +42,6 @@ export default function Foox({
   // this is to change between list and timer
   const showpage = (page: string, id?: number) => {
     if (id !== undefined && id !== null) {
-      alert("we are here");
       setFocusselected(foucuslist[id]);
     }
     setPageshowed(page);
@@ -518,6 +517,7 @@ const ShowTimer = ({
     minutes: time,
     seconds: 0,
   });
+  const [pausecount, setPausecount] = useState(false);
   useEffect(() => {
     // Exit early when the countdown reaches 0
     if (time <= 0) return;
@@ -540,11 +540,25 @@ const ShowTimer = ({
         }
       }
     }, 1000);
-
+    if (pausecount) {
+      clearInterval(intervalId);
+    }
     // Clean up the interval when the component unmounts or countdown reaches 0
     return () => clearInterval(intervalId);
   }, [countdown]);
-
+  const stopcountdown = () => {
+    setCountdown({
+      minutes: time,
+      seconds: 0,
+    });
+  };
+  const pausecountdown = () => {
+    setCountdown({
+      minutes: countdown.minutes,
+      seconds: countdown.seconds,
+    });
+    setPausecount(!pausecount);
+  };
   return (
     <View style={styles.container}>
       <Text
@@ -582,7 +596,50 @@ const ShowTimer = ({
       >
         {countdown.minutes}:{countdown.seconds}
       </Text>
-
+      <Image
+        source={require("../assets/focus2.png")}
+        style={{
+          width: "80%",
+          height: "40%",
+          resizeMode: "contain",
+          alignSelf: "center",
+          marginTop: 40,
+        }}
+      />
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 10,
+          marginTop: 40,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: "bold",
+            backgroundColor: colors.primary,
+            color: "white",
+            padding: 10,
+          }}
+          onPress={pausecountdown}
+        >
+          {pausecount ? "Resume" : "Pause"}
+        </Text>
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: "bold",
+            backgroundColor: colors.red,
+            color: "white",
+            padding: 10,
+          }}
+        >
+          Cancel
+        </Text>
+      </View>
       <View
         style={{
           zIndex: 5,
