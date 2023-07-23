@@ -18,19 +18,19 @@ export default function Foox({
   const [foucuslist, setFoucuslist] = useState<Array<focusitem>>([
     {
       id: 0,
-      title: "Work",
-      time: 25,
+      title: "Push up ",
+      time: 10,
       state: "finished",
     },
     {
       id: 1,
-      title: "Play a game",
-      time: 30,
+      title: "complete elden ring game hittless",
+      time: 120,
       state: "cancelled",
     },
     {
       id: 2,
-      title: "Work",
+      title: "read a book",
       time: 25,
       state: "inprogress",
     },
@@ -38,11 +38,36 @@ export default function Foox({
   // page showed is to change between list and timer
   const [pageshowed, setPageshowed] = useState("List");
   const [focusselected, setFocusselected] = useState<focusitem | null>(null);
-
+  const updatefocus = (focus: focusitem) => {
+    setFoucuslist(
+      foucuslist.map((item) => {
+        if (item.id === focus.id) {
+          return focus;
+        }
+        return item;
+      })
+    );
+  };
   // this is to change between list and timer
   const showpage = (page: string, id?: number) => {
     if (id !== undefined && id !== null) {
       setFocusselected(foucuslist[id]);
+      if (
+        foucuslist[id].state === "finished" ||
+        foucuslist[id].state === "cancelled"
+      ) {
+        setFoucuslist(
+          foucuslist.map((item) => {
+            if (item.id === id) {
+              return {
+                ...item,
+                state: "inprogress",
+              };
+            }
+            return item;
+          })
+        );
+      }
     }
     setPageshowed(page);
   };
@@ -79,6 +104,8 @@ export default function Foox({
           time={focusselected.time}
           state={focusselected.state}
           title={focusselected.title}
+          updatefocus={updatefocus}
+          id={focusselected.id}
         />
       ) : (
         <Text>ASDadsadsdas</Text>
@@ -202,7 +229,7 @@ const FocusItem = ({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Ionicons name={"alarm-outline"} size={30} color={"#fff"} />
           <Text style={{ fontSize: 20, fontWeight: "bold", color: "#fff" }}>
-            {time}
+            {time} min
           </Text>
         </View>
         <Text style={{ fontSize: 20, fontWeight: "bold", color: "#fff" }}>
@@ -495,13 +522,16 @@ const ShowTimer = ({
   state,
   time,
   title,
+  updatefocus,
+  id,
 }: //   gettimer,
 {
   showpage: (page: string, id?: number) => void;
   title?: string;
   time?: number;
   state?: string;
-
+  id?: number;
+  updatefocus: (focus: focusitem) => void;
   //   gettimer: () =>
   //     | {
   //         id: number;
@@ -514,48 +544,76 @@ const ShowTimer = ({
 }) => {
   if (!time) return null;
   const [countdown, setCountdown] = useState({
-    minutes: time,
+    hours: Math.floor(time / 60),
+    minutes: Math.floor(time % 60),
     seconds: 0,
   });
   const [pausecount, setPausecount] = useState(false);
+  const [focuscompleted, setFocuscompleted] = useState(false);
   useEffect(() => {
     // Exit early when the countdown reaches 0
-    if (time <= 0) return;
-    if (countdown.minutes <= 0 && countdown.seconds <= 0) return;
+    if (time <= 0) {
+      return;
+    }
+    if (
+      countdown.hours <= 0 &&
+      countdown.minutes <= 0 &&
+      countdown.seconds <= 0
+    ) {
+      alert("Congratulation you have finished your focus");
+      setFocuscompleted(true);
+      updatefocus({
+        id: id ? id : 0,
+        title: title ? title : "",
+        time: time,
+        state: "finished",
+      });
+      return;
+    }
     const intervalId = setInterval(() => {
+      if (pausecount) {
+        return;
+      }
       if (countdown.seconds > 0) {
         setCountdown({
+          hours: countdown.hours,
           minutes: countdown.minutes,
           seconds: countdown.seconds - 1,
         });
+      } else if (countdown.minutes > 0) {
+        setCountdown({
+          hours: countdown.hours,
+          minutes: countdown.minutes - 1,
+          seconds: 59,
+        });
+      } else if (countdown.hours > 0) {
+        setCountdown({
+          hours: countdown.hours - 1,
+          minutes: 59,
+          seconds: 59,
+        });
       }
-      if (countdown.seconds === 0) {
-        if (countdown.minutes === 0) {
-          clearInterval(intervalId);
-        } else {
-          setCountdown({
-            minutes: countdown.minutes - 1,
-            seconds: 59,
-          });
-        }
-      }
-    }, 1000);
+    }, 1);
     if (pausecount) {
       clearInterval(intervalId);
     }
     // Clean up the interval when the component unmounts or countdown reaches 0
     return () => clearInterval(intervalId);
   }, [countdown]);
-  const stopcountdown = () => {
-    setCountdown({
-      minutes: time,
-      seconds: 0,
+  const cancelfocus = () => {
+    updatefocus({
+      id: id ? id : 0,
+      title: title ? title : "",
+      time: time,
+      state: "cancelled",
     });
+    showpage("List");
   };
   const pausecountdown = () => {
     setCountdown({
       minutes: countdown.minutes,
       seconds: countdown.seconds,
+      hours: countdown.hours,
     });
     setPausecount(!pausecount);
   };
@@ -594,52 +652,84 @@ const ShowTimer = ({
           marginHorizontal: 40,
         }}
       >
-        {countdown.minutes}:{countdown.seconds}
+        {countdown.hours}: {countdown.minutes}:{countdown.seconds}
       </Text>
-      <Image
-        source={require("../assets/focus2.png")}
-        style={{
-          width: "80%",
-          height: "40%",
-          resizeMode: "contain",
-          alignSelf: "center",
-          marginTop: 40,
-        }}
-      />
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 10,
-          marginTop: 40,
-        }}
-      >
-        <Text
+      {!focuscompleted ? (
+        <Image
+          source={require("../assets/focus2.png")}
           style={{
-            fontSize: 20,
-            fontWeight: "bold",
-            backgroundColor: colors.primary,
-            color: "white",
-            padding: 10,
+            width: "80%",
+            height: "40%",
+            resizeMode: "contain",
+            alignSelf: "center",
+            marginTop: 40,
           }}
-          onPress={pausecountdown}
-        >
-          {pausecount ? "Resume" : "Pause"}
-        </Text>
-        <Text
+        />
+      ) : (
+        <Image
+          source={require("../assets/happy.png")}
           style={{
-            fontSize: 20,
-            fontWeight: "bold",
-            backgroundColor: colors.red,
-            color: "white",
-            padding: 10,
+            width: "80%",
+            height: "40%",
+            resizeMode: "contain",
+            alignSelf: "center",
+            marginTop: 40,
+          }}
+        />
+      )}
+
+      {!focuscompleted ? (
+        <View
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 10,
+            marginTop: 40,
           }}
         >
-          Cancel
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "bold",
+              backgroundColor: colors.primary,
+              color: "white",
+              padding: 10,
+            }}
+            onPress={pausecountdown}
+          >
+            {pausecount ? "Resume" : "Pause"}
+          </Text>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "bold",
+              backgroundColor: colors.red,
+              color: "white",
+              padding: 10,
+            }}
+            onPress={cancelfocus}
+          >
+            Cancel
+          </Text>
+        </View>
+      ) : (
+        <Text
+          style={{
+            fontSize: 25,
+            fontWeight: "bold",
+            backgroundColor: colors.green,
+            color: "white",
+            padding: 15,
+            textAlign: "center",
+            marginHorizontal: 40,
+            marginTop: 40,
+          }}
+        >
+          Congratulation you have finished your focus
         </Text>
-      </View>
+      )}
       <View
         style={{
           zIndex: 5,
